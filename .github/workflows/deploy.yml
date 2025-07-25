@@ -1,0 +1,33 @@
+name: CI/CD for Lambda Functions
+on:
+  push:
+    branches:
+      - main
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    strategy:
+      matrix:
+        lambda: ["influxdb_monthly_backup", "influxdb_daily_backup", "influxdb_monthly_restore", "influxdb_daily_restore"]
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-west-2
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and Push Docker Image
+        run: |
+          cd ${{ matrix.lambda }}
+          docker build -t ${{ matrix.lambda }} .
+          docker tag ${{ matrix.lambda }}:latest ${{ steps.login-ecr.outputs.registry }}/backups:${{ matrix.lambda }}-${{ github.sha }}
+          docker push ${{ steps.login-ecr.outputs.registry }}/backups:${{ matrix.lambda }}-${{ github.sha }}
