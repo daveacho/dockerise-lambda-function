@@ -5,12 +5,12 @@ FROM public.ecr.aws/lambda/python:3.12-arm64
 WORKDIR /usr/app
 
 #Install dependencies first (optimized for caching)
-copy requirements.txt /usr/app
+COPY requirements.txt /usr/app
 
 RUN pip install --no-cache-dir -r requirements.txt
 
 #copy the rest of the application files
-COPY influxdb-daily-restore.py /usr/app
+COPY influxdb_daily_restore.py /usr/app
 
 #start the lambda function
-CMD ["influxdb-daily-restore.lambda_handler"]
+CMD ["influxdb_daily_restore.lambda_handler"]
