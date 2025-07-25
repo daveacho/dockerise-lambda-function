@@ -21,6 +21,14 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: eu-west-2
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
@@ -28,6 +36,6 @@ jobs:
       - name: Build and Push Docker Image
         run: |
           cd ${{ matrix.lambda }}
-          docker build -t ${{ matrix.lambda }} .
-          docker tag ${{ matrix.lambda }}:latest ${{ steps.login-ecr.outputs.registry }}/backups:${{ matrix.lambda }}-${{ github.sha }}
-          docker push ${{ steps.login-ecr.outputs.registry }}/backups:${{ matrix.lambda }}-${{ github.sha }}
+          docker buildx build --platform linux/arm64 -t ${{ matrix.lambda }} --push \
+            --build-arg ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }} \
+            --build-arg IMAGE_TAG=${{ matrix.lambda }}-${{ github.sha }} \
