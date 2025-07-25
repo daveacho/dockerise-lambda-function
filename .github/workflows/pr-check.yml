@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        lambda: ["influxdb-monthly-backup", "influxdb-daily-backup", "influxdb-monthly-restore", "influxdb-daily-restore"]
+        lambda: ["influxdb_monthly_backup", "influxdb_daily_backup", "influxdb_monthly_restore", "influxdb_daily_restore"]
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4

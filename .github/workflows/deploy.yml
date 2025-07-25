@@ -9,7 +9,7 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     strategy:
       matrix:
-        lambda: ["influxdb-monthly-backup", "influxdb-daily-backup", "influxdb-monthly-restore", "influxdb-daily-restore"]
+        lambda: ["influxdb_monthly_backup", "influxdb_daily_backup", "influxdb_monthly_restore", "influxdb_daily_restore"]
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
