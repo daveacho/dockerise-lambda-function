@@ -28,14 +28,19 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          install: true
+          driver-opts: image=moby/buildkit:latest         
 
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build and Push Docker Image
+      - name: Build and push Docker image
         run: |
-          cd ${{ matrix.lambda }}
-          docker buildx build --platform linux/arm64 -t ${{ matrix.lambda }} --push \
-            --build-arg ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }} \
-            --build-arg IMAGE_TAG=${{ matrix.lambda }}-${{ github.sha }} \
+          cd ${{ matrix.lambda }
+          docker buildx build \
+            --platform linux/arm64 \
+            -t ${{ steps.login-ecr.outputs.registry }}/backups:${{ matrix.lambda }}-${{ github.sha }} \
+            --push \
+            .
