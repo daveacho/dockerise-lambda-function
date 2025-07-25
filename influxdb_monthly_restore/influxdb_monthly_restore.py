@@ -1,10 +1,10 @@
 import subprocess
-import boto3
 import os
 import json
 import logging
 from datetime import datetime
 from botocore.exceptions import ClientError
+import boto3
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

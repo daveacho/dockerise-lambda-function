@@ -1,5 +1,4 @@
 import subprocess
-import boto3
 import os
 import json
 import logging
@@ -7,6 +6,7 @@ import io
 import gzip
 from datetime import datetime, UTC, timedelta
 from botocore.exceptions import ClientError
+import boto3
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
