@@ -39,8 +39,17 @@ jobs:
       - name: Build and push Docker image
         run: |
           cd ${{ matrix.lambda }}
-          docker buildx build \
+          docker build \
             --platform linux/arm64 \
             -t ${{ steps.login-ecr.outputs.registry }}/backups:${{ matrix.lambda }}-${{ github.sha }} \
-            --push \
             .
+          docker push ${{ steps.login-ecr.outputs.registry }}/backups:${{ matrix.lambda }}-${{ github.sha }}
+
+      # - name: Build and push Docker image
+      #   run: |
+      #     cd ${{ matrix.lambda }
+      #     docker buildx build \
+      #       --platform linux/arm64 \
+      #       -t ${{ steps.login-ecr.outputs.registry }}/backups:${{ matrix.lambda }}-${{ github.sha }} \
+      #       --push \
+      #       .
