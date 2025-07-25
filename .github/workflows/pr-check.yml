@@ -1,0 +1,76 @@
+name: CI/CD for Lambda Functions
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+jobs:
+  test-and-lint:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        lambda: ["monthly-backup", "daily-backup", "monthly-restore", "daily-restore"]
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Set up Virtual Environment
+        run: |
+          cd ${{ matrix.lambda }}
+          python3 -m venv test-venv
+
+      - name: Install Dependencies
+        run: |
+          cd ${{ matrix.lambda }}
+          source test-venv/bin/activate
+          pip install --upgrade pip
+          pip install pylint pytest
+          pip install -r requirements.txt
+
+      - name: Run Pylint for Code Quality Check
+        run: |
+          cd ${{ matrix.lambda }}
+          source test-venv/bin/activate
+          pylint *.py --fail-under=8.0
+
+      - name: Run Unit Tests
+        run: |
+          cd ${{ matrix.lambda }}
+          source test-venv/bin/activate
+          pytest tests
+
+  build-and-push:
+    runs-on: ubuntu-latest
+    needs: test-and-lint
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    strategy:
+      matrix:
+        lambda: ["monthly-backup", "daily-backup", "monthly-restore", "daily-restore"]
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and Push Docker Image
+        run: |
+          cd ${{ matrix.lambda }}
+          docker build -t ${{ matrix.lambda }} .
+          docker tag ${{ matrix.lambda }}:latest ${{ steps.login-ecr.outputs.registry }}/backup:${{ matrix.lambda }}-${{ github.sha }}
+          docker push ${{ steps.login-ecr.outputs.registry }}/backup:${{ matrix.lambda }}-${{ github.sha }}
