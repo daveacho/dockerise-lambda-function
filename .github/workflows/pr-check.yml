@@ -8,10 +8,6 @@ on:
 jobs:
   test-and-lint:
     runs-on: ubuntu-latest
-    # strategy:
-    #   matrix:
-    #     function: ["cognito_backup"]
-    #   fail-fast: false  # Continue testing other functions even if one fails
     
     steps:
       - name: Checkout Code
@@ -24,12 +20,10 @@ jobs:
 
       - name: Set up Virtual Environment
         run: |
-          # cd ${{ matrix.function }}
           python3 -m venv test-venv
 
       - name: Install Dependencies
         run: |
-          # cd ${{ matrix.function }}
           source test-venv/bin/activate
           pip install --upgrade pip
           pip install pylint pytest
@@ -37,9 +31,8 @@ jobs:
 
       - name: Run Pylint for Code Quality Check
         run: |
-          # cd ${{ matrix.function }}
           source test-venv/bin/activate
-          pylint *.py --fail-under=4.0
+          pylint *.py --fail-under=8.0
 
       # - name: Run Unit Tests
       #   run: |
