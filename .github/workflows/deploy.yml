@@ -8,7 +8,7 @@ on:
 
 env:
   AWS_REGION: eu-west-2
-  ECR_REPOSITORY: backup
+  ECR_REPOSITORY: backups
 
 jobs:
   build-and-deploy:
