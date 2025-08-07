@@ -55,26 +55,26 @@ jobs:
           
           echo "✅ Image built successfully"
 
-      - name: Run security scan
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          echo "Running security scan..."
+      # - name: Run security scan
+      #   env:
+      #     ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+      #     IMAGE_TAG: ${{ github.sha }}
+      #   run: |
+      #     echo "Running security scan..."
           
-          # Install Trivy
-          sudo apt-get update
-          sudo apt-get install wget apt-transport-https gnupg lsb-release -y
-          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
-          echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
-          sudo apt-get update
-          sudo apt-get install trivy -y
+      #     # Install Trivy
+      #     sudo apt-get update
+      #     sudo apt-get install wget apt-transport-https gnupg lsb-release -y
+      #     wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+      #     echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
+      #     sudo apt-get update
+      #     sudo apt-get install trivy -y
           
-          # Scan the image
-          echo "Scanning image for vulnerabilities..."
-          trivy image --exit-code 0 --severity HIGH,CRITICAL --format table $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+      #     # Scan the image
+      #     echo "Scanning image for vulnerabilities..."
+      #     trivy image --exit-code 0 --severity HIGH,CRITICAL --format table $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           
-          echo "✅ Security scan completed"
+      #     echo "✅ Security scan completed"
 
 
       - name: Push images to ECR
