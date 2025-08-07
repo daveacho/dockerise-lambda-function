@@ -418,3 +418,4 @@ def lambda_handler(event: Dict[str, Any], _context) -> Dict[str, Any]:
             'statusCode': 500,
             'body': json.dumps({'error': str(exc)})
         }
+    
