@@ -24,12 +24,12 @@ jobs:
 
       - name: Set up Virtual Environment
         run: |
-          cd ${{ matrix.lambda }}
+          cd ${{ matrix.function }}
           python3 -m venv test-venv
 
       - name: Install Dependencies
         run: |
-          cd ${{ matrix.lambda }}
+          cd ${{ matrix.function }}
           source test-venv/bin/activate
           pip install --upgrade pip
           pip install pylint pytest
@@ -37,7 +37,7 @@ jobs:
 
       - name: Run Pylint for Code Quality Check
         run: |
-          cd ${{ matrix.lambda }}
+          cd ${{ matrix.function }}
           source test-venv/bin/activate
           pylint *.py --fail-under=6.5
 
