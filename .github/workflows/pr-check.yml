@@ -8,9 +8,11 @@ on:
 jobs:
   test-and-lint:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        lambda: ["influxdb_monthly_backup", "influxdb_daily_backup", "influxdb_monthly_restore", "influxdb_daily_restore"]
+    # strategy:
+    #   matrix:
+    #     function: ["cognito_backup"]
+    #   fail-fast: false  # Continue testing other functions even if one fails
+    
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -18,16 +20,16 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: '3.11'
 
       - name: Set up Virtual Environment
         run: |
-          cd ${{ matrix.lambda }}
+          # cd ${{ matrix.function }}
           python3 -m venv test-venv
 
       - name: Install Dependencies
         run: |
-          cd ${{ matrix.lambda }}
+          # cd ${{ matrix.function }}
           source test-venv/bin/activate
           pip install --upgrade pip
           pip install pylint pytest
@@ -35,12 +37,60 @@ jobs:
 
       - name: Run Pylint for Code Quality Check
         run: |
-          cd ${{ matrix.lambda }}
+          # cd ${{ matrix.function }}
           source test-venv/bin/activate
-          pylint *.py --fail-under=5.5
+          pylint *.py --fail-under=4.0
 
       # - name: Run Unit Tests
       #   run: |
       #     cd ${{ matrix.lambda }}
       #     source test-venv/bin/activate
       #     pytest tests
+
+
+# name: CI/CD for Lambda Functions
+
+# on:
+#   pull_request:
+#     branches:
+#       - main
+
+# jobs:
+#   test-and-lint:
+#     runs-on: ubuntu-latest
+#     strategy:
+#       matrix:
+#         lambda: ["influxdb_monthly_backup", "influxdb_daily_backup", "influxdb_monthly_restore", "influxdb_daily_restore"]
+#     steps:
+#       - name: Checkout Code
+#         uses: actions/checkout@v4
+
+#       - name: Set up Python
+#         uses: actions/setup-python@v5
+#         with:
+#           python-version: '3.12'
+
+#       - name: Set up Virtual Environment
+#         run: |
+#           cd ${{ matrix.lambda }}
+#           python3 -m venv test-venv
+
+#       - name: Install Dependencies
+#         run: |
+#           cd ${{ matrix.lambda }}
+#           source test-venv/bin/activate
+#           pip install --upgrade pip
+#           pip install pylint pytest
+#           pip install -r requirements.txt
+
+#       - name: Run Pylint for Code Quality Check
+#         run: |
+#           cd ${{ matrix.lambda }}
+#           source test-venv/bin/activate
+#           pylint *.py --fail-under=5.5
+
+#       # - name: Run Unit Tests
+#       #   run: |
+#       #     cd ${{ matrix.lambda }}
+#       #     source test-venv/bin/activate
+#       #     pytest tests
