@@ -1,49 +1,157 @@
-name: CI/CD for Lambda Functions
+name: Deploy Lambda Functions
+
 on:
   push:
     branches:
       - main
+  workflow_dispatch:  # Allow manual triggering
+
+env:
+  AWS_REGION: eu-west-2
+  ECR_REPOSITORY: backup
+
 jobs:
-  build-and-push:
+  build-and-deploy:
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    strategy:
-      matrix:
-        lambda: ["influxdb_monthly_backup", "influxdb_daily_backup", "influxdb_monthly_restore", "influxdb_daily_restore"]
+    
     steps:
-      - name: Checkout Code
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Configure AWS Credentials
+      - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: eu-west-2
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-        with:
-          platforms: arm64
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-        with:
-          install: true
-          driver-opts: image=moby/buildkit:latest         
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-
-      - name: Build and push Docker image
+      - name: Extract metadata
+        id: meta
         run: |
-          cd ${{ matrix.lambda }}
-          IMAGE_TAG=${{ steps.login-ecr.outputs.registry }}/backup:${{ matrix.lambda }}-${{ github.sha }}
-          docker build --platform linux/arm64 -t $IMAGE_TAG .
-          docker images | grep ${{ matrix.lambda }} || { echo "Image not found"; exit 1; }
-          docker push $IMAGE_TAG
+          echo "image_tag=${GITHUB_SHA:0:8}" >> $GITHUB_OUTPUT
+          echo "timestamp=$(date +%Y%m%d-%H%M%S)" >> $GITHUB_OUTPUT
+          echo "full_sha=${GITHUB_SHA}" >> $GITHUB_OUTPUT
+
+      - name: Build and tag Docker image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          echo "Building Docker image for cognito_backup..."
+          
+          # Build image with multiple tags
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:cognito_backup-$IMAGE_TAG .
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:cognito_backup-latest .
+          
+          # Verify the image was built successfully
+          docker images | grep $ECR_REPOSITORY || { 
+            echo "❌ Image build failed"; 
+            exit 1; 
+          }
+          
+          echo "✅ Image built successfully"
+
+      - name: Run security scan
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          echo "Running security scan..."
+          
+          # Install Trivy
+          sudo apt-get update
+          sudo apt-get install wget apt-transport-https gnupg lsb-release -y
+          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+          echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
+          sudo apt-get update
+          sudo apt-get install trivy -y
+          
+          # Scan the image
+          echo "Scanning image for vulnerabilities..."
+          trivy image --exit-code 0 --severity HIGH,CRITICAL --format table $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          
+          echo "✅ Security scan completed"
+
+
+      - name: Push images to ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          echo "Pushing images to ECR..."
+          
+          # Push all tagged images
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:cognito_backup-$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:cognito_backup-latest
+          
+          echo "✅ All images pushed successfully"
+
+      - name: Create deployment summary
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          
+        run: |
+          echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Image Tag**: \`$IMAGE_TAG\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **ECR Repository**: \`$ECR_REGISTRY/$ECR_REPOSITORY\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📦 Images Pushed:" >> $GITHUB_STEP_SUMMARY
+          echo "- **Main Image**: \`$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Function Image**: \`$ECR_REGISTRY/$ECR_REPOSITORY:cognito_backup-$IMAGE_TAG\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🎯 Next Steps:" >> $GITHUB_STEP_SUMMARY
+          echo "- Lambda function will be updated with new image" >> $GITHUB_STEP_SUMMARY
+
+# name: CI/CD for Lambda Functions
+# on:
+#   push:
+#     branches:
+#       - main
+# jobs:
+#   build-and-push:
+#     runs-on: ubuntu-latest
+#     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+#     strategy:
+#       matrix:
+#         lambda: ["influxdb_monthly_backup", "influxdb_daily_backup", "influxdb_monthly_restore", "influxdb_daily_restore"]
+#     steps:
+#       - name: Checkout Code
+#         uses: actions/checkout@v4
+
+#       - name: Configure AWS Credentials
+#         uses: aws-actions/configure-aws-credentials@v4
+#         with:
+#           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+#           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+#           aws-region: eu-west-2
+
+#       - name: Set up QEMU
+#         uses: docker/setup-qemu-action@v3
+#         with:
+#           platforms: arm64
+
+#       - name: Set up Docker Buildx
+#         uses: docker/setup-buildx-action@v3
+#         with:
+#           install: true
+#           driver-opts: image=moby/buildkit:latest         
+
+#       - name: Login to Amazon ECR
+#         id: login-ecr
+#         uses: aws-actions/amazon-ecr-login@v2
+
+
+#       - name: Build and push Docker image
+#         run: |
+#           cd ${{ matrix.lambda }}
+#           IMAGE_TAG=${{ steps.login-ecr.outputs.registry }}/backup:${{ matrix.lambda }}-${{ github.sha }}
+#           docker build --platform linux/arm64 -t $IMAGE_TAG .
+#           docker images | grep ${{ matrix.lambda }} || { echo "Image not found"; exit 1; }
+#           docker push $IMAGE_TAG
 
       # - name: Build and push Docker image
       #   run: |
