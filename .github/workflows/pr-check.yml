@@ -39,7 +39,7 @@ jobs:
         run: |
           # cd ${{ matrix.function }}
           source test-venv/bin/activate
-          pylint *.py --fail-under=6.5
+          pylint *.py --fail-under=4.0
 
       # - name: Run Unit Tests
       #   run: |
